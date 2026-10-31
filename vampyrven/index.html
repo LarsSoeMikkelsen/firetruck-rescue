@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="da">
+<title>Vampyrven</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap">
+<style>
+/* Layout: one full-screen toy board, a sibling of Davids Brandbil and Davids Lastbil. A chunky cream top bar sits over a
+   side-view night garden canvas, with one big round button to switch between girl and bat.
+   Deliberately one look in every theme, so all colors are set explicitly. */
+:root {
+  --night: #1d1f4a;
+  --cream: #fff8e6;
+  --ink: #2b2340;
+  --cab: #8a4fd1;
+  --gold: #ffc21a;
+  --display: "Baloo 2", "Trebuchet MS", "Arial Rounded MT Bold", system-ui, sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; overflow: hidden; touch-action: manipulation; background: var(--night); color: var(--ink); margin: 0; }
+body { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+
+#app {
+  /* dvh = the area actually visible between the phone browser's toolbars; vh is the fallback. */
+  position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+  background: var(--night);
+  font-family: var(--display);
+}
+
+header {
+  display: flex; align-items: center; gap: 12px;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--cream);
+  border-bottom: 4px solid var(--ink);
+}
+h1 {
+  margin: 0; flex: 1; min-width: 0;
+  font-size: clamp(1.3rem, 3.2vw, 2rem); font-weight: 800; line-height: 1;
+  color: var(--cab); text-wrap: balance; text-align: center;
+  letter-spacing: 0.01em;
+}
+.stars {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 16px 4px 10px;
+  background: var(--gold); border: 3px solid var(--ink); border-radius: 999px;
+  box-shadow: 0 4px 0 var(--ink);
+  font-size: 1.9rem; font-weight: 800; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.stars svg { width: 34px; height: 34px; }
+.stars.bump, .avatar.bump { animation: bump 0.5s ease; }
+.avatar {
+  width: 58px; height: 58px; flex: none;
+  border-radius: 50%; border: 3px solid var(--ink);
+  box-shadow: 0 4px 0 var(--ink);
+  background: #d9c8ff;
+  display: grid; place-items: center;
+  font-size: 34px; line-height: 1;
+}
+@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.3) rotate(-6deg); } 100% { transform: scale(1); } }
+
+.actions { display: flex; gap: 10px; align-items: center; }
+button {
+  font: inherit; color: var(--ink); cursor: pointer;
+  border: 3px solid var(--ink); border-radius: 999px;
+  box-shadow: 0 4px 0 var(--ink);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+button:active { transform: translateY(4px); box-shadow: 0 0 0 var(--ink); }
+button:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.sound { background: var(--cream); width: 52px; height: 52px; display: grid; place-items: center; padding: 0; }
+.sound svg { width: 28px; height: 28px; }
+.home { background: var(--cream); width: 52px; height: 52px; display: grid; place-items: center; padding: 0;
+  color: var(--ink); text-decoration: none; cursor: pointer;
+  border: 3px solid var(--ink); border-radius: 999px; box-shadow: 0 4px 0 var(--ink);
+  transition: transform 0.08s, box-shadow 0.08s; }
+.home:active { transform: translateY(4px); box-shadow: 0 0 0 var(--ink); }
+.home:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.home svg { width: 28px; height: 28px; }
+
+#board { position: relative; flex: 1; min-height: 0; background: var(--night); }
+#night { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; } /* explicit size: a canvas otherwise shows at its pixel size, 2x too big on phones */
+
+/* the big girl/bat switch, placed for a right thumb */
+.switch {
+  position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 18px;
+  width: clamp(80px, 20vmin, 116px); height: clamp(80px, 20vmin, 116px);
+  padding: 0; display: grid; place-items: center;
+  background: var(--gold); border: 4px solid var(--ink); border-radius: 50%;
+  box-shadow: 0 6px 0 var(--ink);
+  font-size: clamp(44px, 11vmin, 66px); line-height: 1;
+  touch-action: manipulation;
+}
+.switch:active { transform: translateY(6px); box-shadow: 0 0 0 var(--ink); }
+.switch.pulse { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.12); box-shadow: 0 6px 0 var(--ink), 0 0 0 12px rgba(255, 194, 26, 0.45); } }
+
+.hint {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%);
+  max-width: calc(100% - 32px); width: max-content;
+  padding: 6px 18px;
+  background: var(--cream); border: 3px solid var(--ink); border-radius: 18px;
+  box-shadow: 0 4px 0 var(--ink);
+  font-size: clamp(1.05rem, 3vw, 1.45rem); font-weight: 800; text-align: center;
+  pointer-events: none;
+  animation: float 1.6s ease-in-out infinite;
+}
+@keyframes float { 50% { transform: translate(-50%, -5px); } }
+
+.banner {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  width: max-content; max-width: calc(100% - 32px);
+  padding: 12px 28px;
+  background: var(--gold); border: 4px solid var(--ink); border-radius: 24px;
+  box-shadow: 0 6px 0 var(--ink);
+  font-size: clamp(1.8rem, 6vw, 3.4rem); font-weight: 800; line-height: 1.1; text-align: center;
+  pointer-events: none;
+  animation: pop 0.5s cubic-bezier(.3,1.6,.5,1);
+}
+.banner-emoji { font-size: clamp(4rem, 14vw, 7rem); line-height: 1; }
+@keyframes pop { from { transform: translate(-50%, -50%) scale(0.2); } to { transform: translate(-50%, -50%) scale(1); } }
+
+@media (max-width: 560px) {
+  header { gap: 8px; justify-content: space-between; }
+  h1 { display: none; }
+  .home, .sound { width: 44px; height: 44px; }
+  .stars { font-size: 1.5rem; }
+  .stars svg { width: 26px; height: 26px; }
+  .avatar { width: 46px; height: 46px; font-size: 27px; }
+  .hint { font-size: 1rem; padding: 4px 14px; border-radius: 14px; }
+}
+/* Short screens (phones held sideways): slim top bar so the garden gets the height. */
+@media (max-height: 500px) {
+  header { padding-block: 4px; gap: 8px; }
+  h1 { font-size: 1.15rem; }
+  .avatar { width: 40px; height: 40px; font-size: 24px; }
+  .stars { font-size: 1.3rem; padding: 2px 12px 2px 8px; }
+  .stars svg { width: 22px; height: 22px; }
+  .sound, .home { width: 40px; height: 40px; }
+  .sound svg, .home svg { width: 22px; height: 22px; }
+  .hint { font-size: 1rem; padding: 4px 14px; border-radius: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint, .stars.bump, .avatar.bump, .banner, .switch.pulse { animation: none; }
+}
+</style>
+
+<div id="app">
+  <header>
+    <span id="avatar" class="avatar" role="img" aria-label="Vampyrven">🧛‍♀️</span>
+    <div id="stars" class="stars" aria-live="polite" aria-label="Glade venner">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="#fff8e6" stroke="#2b2340" stroke-width="2" stroke-linejoin="round"/></svg>
+      <span id="starCount">0</span>
+    </div>
+    <h1>Vampyrven</h1>
+    <div class="actions">
+      <a id="homeBtn" class="home" href="../" aria-label="Til forsiden" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5" fill="none" stroke="#2b2340" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10v9.5h5v-5h3v5h5V10" fill="#2b2340"/></svg>
+      </a>
+      <button id="soundBtn" class="sound" aria-label="Slå lyden fra">
+        <svg id="iconOn" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="#2b2340"/><path d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" fill="none" stroke="#2b2340" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg id="iconOff" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M4 9h4l5-4v14l-5-4H4z" fill="#2b2340"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="#2b2340" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+  <div id="board">
+    <canvas id="night" aria-label="En have om natten. Tryk for at gå. Som flagermus flyver Vampyrven derhen, hvor du trykker."></canvas>
+    <div id="hint" class="hint">Tryk for at gå. Tryk på 🦇 for at flyve!</div>
+    <button id="switchBtn" class="switch" aria-label="Bliv til en flagermus">🦇</button>
+    <div id="banner" class="banner" hidden><span class="banner-emoji" aria-hidden="true">🧛‍♀️🦇</span><span id="bannerText">Super-Vampyrven!</span></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const wrap = document.getElementById('board');
+  const cv = document.getElementById('night');
+  const ctx = cv.getContext('2d');
+  const starBox = document.getElementById('stars');
+  const starCount = document.getElementById('starCount');
+  const hintEl = document.getElementById('hint');
+  const banner = document.getElementById('banner');
+  const bannerText = document.getElementById('bannerText');
+  const soundBtn = document.getElementById('soundBtn');
+  const switchBtn = document.getElementById('switchBtn');
+  const avatar = document.getElementById('avatar');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const INK = '#2b2340';
+  const FONT = '"Baloo 2", "Trebuchet MS", sans-serif';
+  const SKIN = '#f6d2b8', HAIR = '#4a2350', DRESS = '#8a4fd1', CAPE = '#3a2450', LINING = '#d23a4e', BOW = '#ff5c8a';
+  const BAT = '#7a4fc9', WING = '#4a2a7a';
+
+  // The world is measured in units: 10 tall, WORLD_W wide; y grows downward and the ground top is at GROUND.
+  const WORLD_W = 34, GROUND = 8.6;
+  // one-way ledges: you can fly up through them from below and land on top
+  const PLATFORMS = [{ x0: 9.3, x1: 15.7, y: 3.75 }, { x0: 21.1, x1: 24.4, y: 3.6 }];
+  // the tall hedge; only a bat fits through its round hole (y0..y1)
+  const HEDGE = { x0: 26, x1: 27, y0: 5.6, y1: 7.0 };
+  const WALK = 3; // units per second
+
+  // friends, and where the bat has to touch for the "visit" missions
+  const friends = {
+    frog:    { x: 3.7,  y: GROUND, top: 0.8,  happy: 0 },
+    cat:     { x: 16.1, y: GROUND, top: 1.1,  happy: 0 },
+    ghost:   { x: 18.6, y: GROUND, top: 1.45, happy: 0 },
+    owl:     { x: 23.6, y: 3.6,    top: 1.0,  happy: 0, awake: false, sleepT: 0, touch: { x: 23.6, y: 3.2 } },
+    lantern: { x: 11,   y: 3.75,   top: 1.3,  happy: 0, lit: false, touch: { x: 11, y: 2.85 } },
+    spider:  { x: 31,   y: 5.3,    top: 0.55, happy: 0, touch: { x: 31, y: 5.3 } },
+  };
+  const items = {
+    pumpkin: { home: 6.7 },
+    present: { home: 24.9 },
+    flower:  { home: 13.5 },
+  };
+  for (const it of Object.values(items)) Object.assign(it, { x: it.home, y: GROUND, state: 'home' });
+  // where a handed-over thing is put down, next to the friend who got it
+  const GIVE_AT = { ghost: -0.75, cat: 0.6, frog: 0.65 };
+
+  const MISSIONS = [
+    { item: 'pumpkin', to: 'ghost', ask: 'Spøgelset vil gerne have et græskar!', thanks: 'Buuh! Tak for græskarret!' },
+    { target: 'owl', ask: 'Uglen sover oppe i træet. Lad os flyve op og vække den!', thanks: 'Hu-hu! Godnat... nej, godmorgen!' },
+    { item: 'present', to: 'cat', ask: 'Katten har fødselsdag! Hent gaven til den!', thanks: 'Miav! Tak for gaven!' },
+    { target: 'lantern', ask: 'Lygten på taget er slukket. Flyv op og tænd den!', thanks: 'Nu er der lys!' },
+    { item: 'flower', to: 'frog', ask: 'Frøen vil gerne have en blomst!', thanks: 'Kvæk! Hvor er den smuk!' },
+    { target: 'spider', ask: 'Edderkoppen bag hækken vil gerne have besøg!', thanks: 'Hej Vampyrven! Hvor hyggeligt!' },
+    { target: 'fireflies', ask: 'Lad os samle tre ildfluer oppe på himlen!', thanks: 'Se, hvor de lyser!' },
+  ];
+  const FIREFLY_SPOTS = [[3.4, 2.0], [6.2, 2.6], [8.6, 1.8], [12.4, 1.5], [16.6, 2.2], [19.4, 1.4], [24.8, 2.2]];
+  const BANNERS = ['Super-Vampyrven!', 'Natten er reddet!', 'Havens bedste ven!', 'Flagermus-helten!'];
+  const SAY = {
+    hello: ['Hej! Jeg er Vampyrven!', 'Kom, vi leger i haven i nat!'],
+    toBat: ['Pift! Nu er jeg en flagermus!', 'Flagermus!', 'Vupti, nu kan jeg flyve!'],
+    toGirl: ['Pift! Pige igen!', 'Hej igen!', 'Vupti!'],
+    pick: ['Den tager jeg!', 'Jeg har den!', 'Op i armene!'],
+    done: ['Det klarede vi!', 'Hurra!', 'Juhu!', 'Godt klaret!'],
+    idle: ['Jeg elsker natten!', 'Se, hvor månen lyser!', 'Flagermus er seje!', 'Hvem skal vi hjælpe?'],
+    needBat: ['Jeg skal være flagermus for at nå derop!'],
+    needGirl: ['En flagermus kan ikke bære noget. Jeg skal være pige!'],
+    hedge: ['Hullet er for lille til en pige. Men en flagermus kan flyve igennem!'],
+    heavy: ['Den er for tung for en flagermus! Jeg skal være pige.'],
+    drop: ['Jeg kan ikke bære den som flagermus! Jeg lægger den her.'],
+  };
+
+  let W = 0, H = 0, dpr = 1, scale = 60, oy = 0, viewW = 10, camX = 0, lw = 0.035;
+  let parts = [], texts = [], flies = [];
+  let stars = 0, time = 0, idleT = 0, quietT = 6, bannerT = 0, nagT = 0, hintKey = '';
+  let speech = null, sayCool = 0;
+  let mission = null, missionIdx = 0, nextT = 2.5, firstDone = false;
+  let keyDir = 0, held = false, ptr = { x: 0, y: 0 };
+  const player = {
+    x: 12.5, y: GROUND, vx: 0, vy: 0, tvx: 0, face: 1, form: 'girl', carry: null,
+    ground: true, walkTo: null, inHole: false, holeDir: 1, flapT: 0, wing: 0, step: 0, jump: 0,
+  };
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
+  const pick = list => list[Math.random() * list.length | 0];
+  const batCenter = () => player.y - 0.42;
+  function surfaceBelow(x, y) {
+    let s = GROUND;
+    for (const q of PLATFORMS) if (x > q.x0 && x < q.x1 && q.y >= y - 0.01 && q.y < s) s = q.y;
+    return s;
+  }
+
+  // ---------- game events ----------
+  function say(what, chance = 1, now = false) {
+    if ((sayCool > 0 && !now) || Math.random() > chance) return;
+    const lines = Array.isArray(what) ? what : SAY[what] || [what];
+    const text = pick(lines);
+    speech = { text, life: 3.2, max: 3.2 };
+    sayCool = 4;
+    quietT = 0;
+    speak(text);
+  }
+  // repeated nudges (wrong form, the hedge) wait a while between each time
+  function nag(what) {
+    if (nagT > 0) return;
+    nagT = 7;
+    say(what, 1, true);
+  }
+
+  function setForm(form) {
+    player.form = form;
+    avatar.textContent = form === 'girl' ? '🧛‍♀️' : '🦇';
+    avatar.setAttribute('aria-label', form === 'girl' ? 'Vampyrven' : 'Vampyrven som flagermus');
+    switchBtn.textContent = form === 'girl' ? '🦇' : '🧛‍♀️';
+    switchBtn.setAttribute('aria-label', form === 'girl' ? 'Bliv til en flagermus' : 'Bliv til en pige');
+  }
+
+  function toggleForm() {
+    ensureAudio();
+    idleT = 0;
+    const p = player;
+    poof(p.x, p.y - (p.form === 'girl' ? 0.75 : 0.42));
+    if (p.form === 'girl') {
+      if (p.carry) {
+        const it = items[p.carry];
+        it.state = 'dropped'; it.x = clamp(p.x + p.face * 0.4, 0.5, WORLD_W - 0.5); it.y = surfaceBelow(it.x, p.y);
+        if (it.x > HEDGE.x0 - 0.4 && it.x < HEDGE.x1 + 0.4) it.x = p.x;
+        p.carry = null;
+        say('drop', 1, true);
+      } else say('toBat', 0.8, true);
+      setForm('bat');
+      p.vy = -1.6; p.tvx = 0; p.walkTo = null; p.flapT = 0.3; p.ground = false;
+    } else {
+      setForm('girl');
+      p.walkTo = null; p.vx = 0; p.tvx = 0; p.inHole = false;
+      say('toGirl', 0.6, true);
+    }
+  }
+
+  function poof(x, y) {
+    for (let i = 0; i < 16; i++) {
+      const a = i / 16 * Math.PI * 2, v = 0.8 + Math.random() * 0.8;
+      parts.push({ kind: 'puff', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.7, g: -0.3, life: 0.6, max: 0.6, r: 0.12 + Math.random() * 0.1 });
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = Math.random() * Math.PI * 2;
+      parts.push({ kind: 'spark', x, y, vx: Math.cos(a) * 2, vy: Math.sin(a) * 2, g: 1, life: 0.6, max: 0.6 });
+    }
+    beep(420, 0.28, { type: 'sine', vol: 0.12, to: 1260 });
+    beep(1046, 0.16, { type: 'triangle', vol: 0.06, delay: 0.14 });
+  }
+
+  function flap(power = 1) {
+    const p = player;
+    p.vy = Math.min(p.vy, -2.9 * power);
+    p.flapT = 0.32;
+    p.ground = false;
+    beep(300, 0.09, { type: 'triangle', vol: 0.05, to: 190 });
+  }
+
+  function newMission() {
+    const m = MISSIONS[missionIdx++ % MISSIONS.length];
+    mission = m;
+    hintKey = '';
+    if (m.item) {
+      const it = items[m.item];
+      if (player.carry !== m.item) Object.assign(it, { x: it.home, y: GROUND, state: 'home' });
+    }
+    if (m.target === 'owl') { friends.owl.awake = false; friends.owl.sleepT = 0; }
+    if (m.target === 'lantern') friends.lantern.lit = false;
+    if (m.target === 'fireflies') {
+      const spots = FIREFLY_SPOTS.slice().sort((a, b) => Math.abs(a[0] - player.x) - Math.abs(b[0] - player.x)).slice(0, 4);
+      spots.sort(() => Math.random() - 0.5);
+      flies = spots.slice(0, 3).map(([x, y]) => ({ x, y, bx: x, by: y, ph: Math.random() * 6, got: false }));
+    }
+    texts.push({ text: '?', x: m.item ? friends[m.to].x : m.target === 'fireflies' ? player.x : friends[m.target].x, y: (m.item ? friends[m.to] : friends[m.target] || player).y - 1.2, life: 1.4, max: 1.4, color: '#ffc21a' });
+    beep(660, 0.14, { type: 'triangle', vol: 0.08 });
+    beep(880, 0.18, { type: 'triangle', vol: 0.08, delay: 0.12 });
+    say(m.ask, 1, true);
+  }
+
+  function complete(m, f) {
+    stars++;
+    starCount.textContent = stars;
+    for (const el of [starBox, avatar]) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+    f.happy = 3;
+    player.jump = 1.2;
+    texts.push({ text: m.thanks, x: f.x, y: f.y - f.top - 0.3, life: 2.6, max: 2.6, color: '#ffc21a' });
+    for (let i = 0; i < 18; i++) {
+      const a = Math.random() * Math.PI * 2, v = 1 + Math.random() * 2;
+      parts.push({ kind: 'spark', x: f.x, y: f.y - f.top * 0.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, g: 3, life: 0.9, max: 0.9 });
+    }
+    [523, 659, 784, 1047].forEach((fr, i) => beep(fr, 0.28, { type: 'triangle', vol: 0.16, delay: i * 0.09 }));
+    if (stars % 5 === 0) celebrate();
+    mission = null;
+    nextT = 3;
+    idleT = 0;
+    if (!firstDone) { firstDone = true; hintEl.hidden = true; }
+    setTimeout(() => say('done', 0.7, true), 1200);
+  }
+
+  function celebrate() {
+    bannerText.textContent = BANNERS[(stars / 5 - 1) % BANNERS.length];
+    banner.hidden = false;
+    bannerT = 4.5;
+    const colors = ['#e8352b', '#ffc21a', '#3a86e8', '#2fa84f', '#b7a6ff', '#ff9fb2'];
+    for (let i = 0; i < (reduce ? 30 : 110); i++) {
+      parts.push({
+        kind: 'confetti', x: camX + Math.random() * viewW, y: -0.5 - Math.random() * 2,
+        vx: (Math.random() - 0.5) * 1.5, vy: Math.random() * 2, g: 2.5,
+        life: 3.5, max: 3.5, color: colors[i % colors.length], rot: Math.random() * 6, spin: (Math.random() - 0.5) * 12,
+      });
+    }
+    [523, 523, 659, 784].forEach((f, i) => beep(f, i === 3 ? 0.6 : 0.16, { type: 'square', vol: 0.07, delay: 0.5 + i * 0.14 }));
+  }
+
+  // where the arrow points, and which form that step needs
+  function goal() {
+    const m = mission, p = player;
+    if (!m) return null;
+    if (m.item) {
+      const it = items[m.item];
+      if (p.carry === m.item) { const f = friends[m.to]; return { x: f.x, y: f.y - f.top, form: 'girl', key: 'give' }; }
+      return { x: it.x, y: it.y - 0.75, form: 'girl', key: 'item' };
+    }
+    if (m.target === 'fireflies') {
+      let best = null, bd = Infinity;
+      for (const f of flies) if (!f.got) { const d = dist(f.x, f.y, p.x, batCenter()); if (d < bd) { bd = d; best = f; } }
+      return best && { x: best.x, y: best.y - 0.35, form: 'bat', key: 'fly' };
+    }
+    if (m.target === 'spider' && p.x < HEDGE.x0) return { x: (HEDGE.x0 + HEDGE.x1) / 2, y: HEDGE.y0 - 0.05, form: 'bat', key: 'hole', hole: true };
+    const f = friends[m.target];
+    return { x: f.x, y: f.y - f.top, form: 'bat', key: m.target };
+  }
+
+  // ---------- update ----------
+  function update(dt) {
+    time += dt;
+    const p = player;
+    const prevY = p.y;
+
+    if (p.form === 'girl') {
+      let dir = keyDir;
+      if (dir) p.walkTo = null;
+      else if (p.walkTo !== null) {
+        const d = p.walkTo - p.x;
+        if (Math.abs(d) < 0.05) p.walkTo = null; else dir = Math.sign(d);
+      }
+      p.vx = dir * WALK;
+      p.vy = Math.min(p.vy + 9 * dt, 3.5);
+    } else {
+      const cy = batCenter();
+      if (held) {
+        p.tvx = clamp((ptr.x - p.x) * 1.6, -3.4, 3.4);
+        p.flapT -= dt;
+        const above = ptr.y < cy + 0.15;
+        if (p.flapT <= 0 && (above || (p.ground && Math.abs(ptr.x - p.x) > 0.4))) flap(above ? 1 : 0.5);
+      } else if (keyDir) p.tvx = keyDir * 3;
+      else p.tvx *= Math.max(0, 1 - dt * 1.8);
+      if (p.inHole && Math.abs(p.tvx) < 1) p.tvx = p.holeDir * 1.6; // glide on through the hole
+      p.vx += (p.tvx - p.vx) * Math.min(1, dt * 5);
+      p.vy = Math.min(p.vy + 3.4 * dt, 1.7);
+      p.wing += dt * (p.ground ? 2 : 15);
+    }
+
+    // sideways, with the hedge in the way
+    let nx = p.x + p.vx * dt;
+    if (p.form === 'girl' && p.walkTo !== null && (p.walkTo - p.x) * (p.walkTo - nx) <= 0) { nx = p.walkTo; p.walkTo = null; }
+    nx = clamp(nx, 0.4, WORLD_W - 0.4);
+    const hw = p.form === 'girl' ? 0.3 : 0.35;
+    if (nx + hw > HEDGE.x0 && nx - hw < HEDGE.x1) {
+      const cy = batCenter();
+      if (p.form === 'bat' && (p.inHole || (cy > HEDGE.y0 - 0.9 && cy < HEDGE.y1 + 0.9))) {
+        if (!p.inHole) p.holeDir = p.x < HEDGE.x0 ? 1 : -1;
+        p.inHole = true;
+        const want = (HEDGE.y0 + HEDGE.y1) / 2 + 0.42;
+        p.y += (want - p.y) * Math.min(1, dt * 9);
+        p.vy = 0;
+      } else {
+        nx = p.x < (HEDGE.x0 + HEDGE.x1) / 2 ? HEDGE.x0 - hw : HEDGE.x1 + hw;
+        p.inHole = false;
+        if (p.form === 'girl') { if (p.walkTo !== null || keyDir) nag('hedge'); p.walkTo = null; }
+        else { p.vx = -p.vx * 0.6; p.tvx = 0; }
+      }
+    } else p.inHole = false;
+    p.x = nx;
+    if (Math.abs(p.vx) > 0.1) p.face = Math.sign(p.vx);
+    p.step += dt * Math.abs(p.vx) * 3.2;
+
+    // up and down, landing on the ground and on ledges from above
+    if (!p.inHole) {
+      const ny = p.y + p.vy * dt;
+      p.ground = false;
+      if (p.vy >= 0) {
+        const pl = PLATFORMS.find(q => p.x > q.x0 && p.x < q.x1 && prevY <= q.y + 0.001 && ny >= q.y);
+        if (pl) { p.y = pl.y; p.vy = 0; p.ground = true; }
+        else if (ny >= GROUND) { p.y = GROUND; p.vy = 0; p.ground = true; }
+        else p.y = ny;
+      } else p.y = ny;
+      if (p.form === 'bat' && p.y < 0.95) { p.y = 0.95; p.vy = Math.max(p.vy, 0); }
+    }
+    if (p.jump > 0) p.jump -= dt;
+
+    // missions
+    const m = mission;
+    if (nagT > 0) nagT -= dt;
+    if (m && m.item) {
+      const it = items[m.item];
+      const loose = it.state === 'home' || it.state === 'dropped';
+      if (loose && p.form === 'girl' && !p.carry && Math.abs(p.x - it.x) < 0.55 && Math.abs(p.y - it.y) < 0.3) {
+        it.state = 'held'; p.carry = m.item;
+        [392, 523].forEach((f, i) => beep(f, 0.18, { type: 'triangle', vol: 0.12, delay: i * 0.1 }));
+        say('pick', 0.8, true);
+      } else if (loose && p.form === 'bat' && dist(p.x, batCenter(), it.x, it.y - 0.3) < 0.75) nag('heavy');
+      if (p.carry === m.item && p.form === 'girl') {
+        const f = friends[m.to];
+        if (Math.abs(p.x - f.x) < 1.0 && Math.abs(p.y - f.y) < 0.4) {
+          Object.assign(it, { state: 'given', x: f.x + GIVE_AT[m.to], y: f.y });
+          p.carry = null;
+          complete(m, f);
+        }
+      }
+    } else if (m && m.target === 'fireflies') {
+      if (p.form === 'bat') {
+        for (const f of flies) {
+          if (f.got || dist(p.x, batCenter(), f.x, f.y) > 0.8) continue;
+          f.got = true;
+          const n = flies.filter(o => o.got).length;
+          texts.push({ text: n + '!', x: f.x, y: f.y - 0.4, life: 1.2, max: 1.2, color: '#ffe27a' });
+          for (let i = 0; i < 10; i++) {
+            const a = Math.random() * Math.PI * 2;
+            parts.push({ kind: 'spark', x: f.x, y: f.y, vx: Math.cos(a) * 1.5, vy: Math.sin(a) * 1.5, g: 1, life: 0.7, max: 0.7 });
+          }
+          beep(988 + n * 120, 0.16, { type: 'triangle', vol: 0.1 });
+          if (n === flies.length) complete(m, { x: f.x, y: f.y + 0.3, top: 0.3, happy: 0 });
+        }
+      }
+    } else if (m) {
+      const f = friends[m.target], t = f.touch;
+      if (p.form === 'bat' && dist(p.x, batCenter(), t.x, t.y) < 0.85) {
+        if (m.target === 'owl') { f.awake = true; f.sleepT = 30; }
+        if (m.target === 'lantern') { f.lit = true; beep(1318, 0.3, { type: 'sine', vol: 0.08 }); }
+        complete(m, f);
+      } else if (p.form === 'girl' && p.ground && Math.abs(p.x - t.x) < 1.3) nag('needBat');
+    }
+    if (!mission) { nextT -= dt; if (nextT <= 0) newMission(); }
+
+    // nudge toward the right form: the switch button pulses, and after a while she says so
+    const g = goal();
+    const wrong = !!g && g.form !== p.form;
+    switchBtn.classList.toggle('pulse', wrong);
+    idleT += dt;
+    if (wrong && idleT > 3 && hintKey !== missionIdx + g.key) {
+      hintKey = missionIdx + g.key;
+      say(g.form === 'girl' ? 'needGirl' : g.hole ? 'hedge' : 'needBat', 1, true);
+    }
+
+    // friends and things
+    const owl = friends.owl;
+    if (owl.awake && owl.sleepT > 0) { owl.sleepT -= dt; if (owl.sleepT <= 0 && !(mission && mission.target === 'owl')) owl.awake = false; }
+    for (const f of Object.values(friends)) {
+      if (f.happy > 0) {
+        f.happy -= dt;
+        if (Math.random() < dt * 4) parts.push({ kind: 'heart', x: f.x - 0.2 + Math.random() * 0.4, y: f.y - f.top * 0.6, vx: (Math.random() - 0.5) * 0.3, vy: -0.7, g: 0, life: 1.3, max: 1.3 });
+      }
+    }
+    for (const f of flies) {
+      f.x = f.bx + Math.sin(time * 1.3 + f.ph) * 0.3;
+      f.y = f.by + Math.sin(time * 1.9 + f.ph * 2) * 0.2;
+    }
+
+    for (const q of parts) {
+      q.life -= dt; q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt;
+      if (q.spin) q.rot += q.spin * dt;
+    }
+    parts = parts.filter(q => q.life > 0);
+    for (const t of texts) { t.life -= dt; t.y -= dt * 0.45; }
+    texts = texts.filter(t => t.life > 0);
+
+    if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) banner.hidden = true; }
+    if (sayCool > 0) sayCool -= dt;
+    if (speech) { speech.life -= dt; if (speech.life <= 0) speech = null; }
+    quietT += dt;
+    if (quietT > 14) { quietT = 0; say(stars ? 'idle' : 'hello', 0.6); }
+
+    camX += (camTarget() - camX) * Math.min(1, dt * 4);
+  }
+
+  function camTarget() {
+    if (viewW >= WORLD_W) return (WORLD_W - viewW) / 2;
+    return clamp(player.x - viewW / 2, 0, WORLD_W - viewW);
+  }
+
+  // ---------- drawing helpers (world units unless noted) ----------
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  function outline() { ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.stroke(); }
+  function box(x, y, w, h, fill, r = 0) {
+    if (r) rr(x, y, w, h, r); else { ctx.beginPath(); ctx.rect(x, y, w, h); }
+    ctx.fillStyle = fill; ctx.fill(); outline();
+  }
+  function poly(pts, fill, stroke = true) {
+    ctx.beginPath(); ctx.moveTo(pts[0], pts[1]);
+    for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+    ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); if (stroke) outline();
+  }
+  function circle(x, y, r, fill, stroke = true) {
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); if (stroke) outline();
+  }
+  function ell(x, y, rx, ry, fill, stroke = true) {
+    ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); if (stroke) outline();
+  }
+  function line(pts, color, width) {
+    ctx.beginPath(); ctx.moveTo(pts[0], pts[1]);
+    for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+  }
+  function heart(x, y, r) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + r * 0.9);
+    ctx.bezierCurveTo(x - r * 1.3, y + r * 0.1, x - r * 0.7, y - r, x, y - r * 0.35);
+    ctx.bezierCurveTo(x + r * 0.7, y - r, x + r * 1.3, y + r * 0.1, x, y + r * 0.9);
+    ctx.fill();
+  }
+  function glow(x, y, r, rgb, a) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`);
+    ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  const worldMode = () => { const k = dpr * scale; ctx.setTransform(k, 0, 0, k, -camX * k, oy * dpr); lw = Math.max(1.5 / scale, 0.032); };
+  const screenMode = () => { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); lw = Math.max(1.5, scale * 0.032); };
+  const SX = x => (x - camX) * scale;
+  const SY = y => oy + y * scale;
+
+  // ---------- sky (screen pixels, with parallax) ----------
+  const SKY_STARS = Array.from({ length: 110 }, () => ({ x: Math.random() * 48, y: -4 + Math.random() * 10, r: 0.03 + Math.random() * 0.05, ph: Math.random() * 6 }));
+  function drawSky() {
+    screenMode();
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#16163d'); g.addColorStop(1, '#3b2f6b');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fff8e6';
+    for (const s of SKY_STARS) {
+      const x = (s.x - camX * 0.3) * scale, y = SY(s.y);
+      if (x < -5 || x > W + 5 || y > SY(6.5)) continue;
+      ctx.globalAlpha = reduce ? 0.8 : 0.45 + 0.55 * Math.abs(Math.sin(time * 1.5 + s.ph));
+      ctx.beginPath(); ctx.arc(x, y, s.r * scale, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    const mx = W * 0.74 - camX * scale * 0.06, my = SY(1.5), mr = 0.85 * scale;
+    const mg = ctx.createRadialGradient(mx, my, mr * 0.8, mx, my, mr * 2.4);
+    mg.addColorStop(0, 'rgba(255,241,184,0.35)'); mg.addColorStop(1, 'rgba(255,241,184,0)');
+    ctx.fillStyle = mg; ctx.fillRect(mx - mr * 2.4, my - mr * 2.4, mr * 4.8, mr * 4.8);
+    circle(mx, my, mr, '#fff1b8');
+    circle(mx - mr * 0.3, my - mr * 0.2, mr * 0.18, '#f3dd8a', false);
+    circle(mx + mr * 0.35, my + mr * 0.25, mr * 0.13, '#f3dd8a', false);
+    circle(mx + mr * 0.05, my + mr * 0.45, mr * 0.09, '#f3dd8a', false);
+    for (const [p, base, amp, f, col, edge] of [[0.35, 6.6, 0.6, 0.45, '#2c2758', false], [0.6, 7.4, 0.45, 0.7, '#3d3170', true]]) {
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (let sx = 0; sx <= W + 10; sx += 10) {
+        const wx = camX * p + sx / scale;
+        ctx.lineTo(sx, SY(base + Math.sin(wx * f) * amp + Math.sin(wx * f * 2.3 + 1) * amp * 0.4));
+      }
+      ctx.lineTo(W + 10, H); ctx.closePath();
+      ctx.fillStyle = col; ctx.fill();
+      if (edge) outline();
+    }
+  }
+
+  // ---------- the garden (world units) ----------
+  function drawGround() {
+    box(-20, GROUND, WORLD_W + 40, 12, '#3f7d4c');
+    ctx.fillStyle = '#356b41';
+    for (let x = 0.3; x < WORLD_W; x += 0.9) ctx.fillRect(x, GROUND + 0.25 + (x * 7 % 3) * 0.12, 0.25, 0.06);
+    for (const x of [-0.4, WORLD_W + 0.4]) { circle(x, GROUND - 0.5, 0.9, '#2f6b45'); circle(x, GROUND - 1.3, 0.6, '#2f6b45'); }
+    // pond with the moon in it
+    ell(1.9, GROUND + 0.1, 1.5, 0.3, '#3a6fb0');
+    ell(2.3, GROUND + 0.1, 0.3, 0.08, 'rgba(255,241,184,0.7)', false);
+    ell(1.2, GROUND + 0.05, 0.28, 0.08, '#4caf5c');
+  }
+
+  function win(x, y, w, h) {
+    box(x, y, w, h, '#ffe27a', 0.05);
+    line([x + w / 2, y, x + w / 2, y + h], INK, lw * 0.8);
+    line([x, y + h / 2, x + w, y + h / 2], INK, lw * 0.8);
+  }
+
+  function drawHouse() {
+    // little tower on the roof
+    box(14.0, 2.35, 1.0, 1.45, '#7b66c0');
+    poly([13.8, 2.4, 14.5, 1.15, 15.2, 2.4], '#4a3a7a');
+    circle(14.5, 2.95, 0.2, '#ffe27a');
+    // walls, roof and windows
+    box(9.5, 3.95, 6.0, 4.65, '#9b86d6');
+    box(9.3, 3.75, 6.4, 0.3, '#4a3a7a', 0.08);
+    win(10.2, 4.6, 1.1, 1.0); win(13.8, 4.6, 1.1, 1.0); win(10.2, 6.4, 1.1, 1.0); win(14.0, 6.4, 1.0, 1.0);
+    // arched door with a bat-shaped sign
+    ctx.beginPath(); ctx.moveTo(12.0, GROUND); ctx.lineTo(12.0, 7.35); ctx.arc(12.55, 7.35, 0.55, Math.PI, 0); ctx.lineTo(13.1, GROUND); ctx.closePath();
+    ctx.fillStyle = '#6b3f2a'; ctx.fill(); outline();
+    circle(12.9, 7.95, 0.06, '#ffc21a', false);
+    miniBat(12.55, 7.3, 0.22, '#ffc21a');
+    box(11.8, GROUND - 0.12, 1.5, 0.12, '#cfc6e6');
+    // flower bed by the wall
+    for (const [fx, c] of [[9.8, '#ff9fb2'], [10.3, '#ffe27a'], [10.8, '#ffffff'], [11.3, '#ff9fb2']]) {
+      line([fx, GROUND, fx, GROUND - 0.3], '#3fae55', 0.04);
+      circle(fx, GROUND - 0.33, 0.08, c, false);
+    }
+  }
+
+  function drawLantern() {
+    const f = friends.lantern;
+    if (f.lit) glow(f.x, 2.85, 1.4, '255,226,122', 0.55);
+    box(f.x - 0.04, 2.95, 0.08, 0.8, '#3a3550');
+    box(f.x - 0.18, 2.62, 0.36, 0.42, f.lit ? '#ffe27a' : '#55507a', 0.06);
+    if (f.lit) poly([f.x, 2.7, f.x + 0.08, 2.88, f.x, 2.96, f.x - 0.08, 2.88], '#ff8a1c', false);
+    poly([f.x - 0.24, 2.64, f.x, 2.42, f.x + 0.24, 2.64], '#3a3550');
+  }
+
+  function drawTree() {
+    poly([20.5, GROUND, 20.75, 3.2, 21.3, 3.2, 21.55, GROUND], '#6b4a3a');
+    for (const [x, y, r] of [[20.0, 2.8, 1.1], [21.9, 1.9, 1.3], [21.0, 2.4, 1.15], [19.6, 1.8, 0.8]]) circle(x, y, r, '#2f6b45');
+    box(21.1, 3.6, 3.3, 0.26, '#6b4a3a', 0.12);
+    circle(24.4, 3.5, 0.32, '#2f6b45');
+  }
+
+  function drawHedge() {
+    box(HEDGE.x0, -12, HEDGE.x1 - HEDGE.x0, GROUND + 12, '#2c5e3a');
+    for (let y = -11.6; y < GROUND; y += 0.55) {
+      circle(HEDGE.x0 + 0.05, y, 0.2, '#357048', false);
+      circle(HEDGE.x1 - 0.05, y + 0.27, 0.2, '#357048', false);
+    }
+    const cx = (HEDGE.x0 + HEDGE.x1) / 2, cy = (HEDGE.y0 + HEDGE.y1) / 2;
+    ell(cx, cy, 0.5, 0.72, '#1a1630');
+    ell(cx, cy + 0.05, 0.36, 0.56, '#100e22', false);
+    // a painted bat on a plaque says who fits through
+    box(cx - 0.32, HEDGE.y0 - 0.85, 0.64, 0.4, '#c49a6c', 0.06);
+    miniBat(cx, HEDGE.y0 - 0.65, 0.24, INK);
+  }
+
+  function drawFarGarden() {
+    for (const [x, s] of [[28.3, 1], [32.8, 0.8]]) { // mushrooms
+      box(x - 0.08 * s, GROUND - 0.4 * s, 0.16 * s, 0.4 * s, '#fff8e6');
+      ctx.beginPath(); ctx.arc(x, GROUND - 0.38 * s, 0.32 * s, Math.PI, 0); ctx.closePath(); ctx.fillStyle = '#e8352b'; ctx.fill(); outline();
+      circle(x - 0.12 * s, GROUND - 0.52 * s, 0.05 * s, '#fff8e6', false); circle(x + 0.1 * s, GROUND - 0.47 * s, 0.04 * s, '#fff8e6', false);
+    }
+    for (const x of [29.7, 33.4]) { ctx.beginPath(); ctx.ellipse(x, GROUND, 0.35, 0.3, 0, Math.PI, 0); ctx.closePath(); ctx.fillStyle = '#8a86a6'; ctx.fill(); outline(); }
+    // spider web
+    const wx = 31.9, wy = 2.7, wr = 1.3;
+    ctx.strokeStyle = 'rgba(230,226,255,0.55)'; ctx.lineWidth = lw * 0.7;
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; ctx.moveTo(wx, wy); ctx.lineTo(wx + Math.cos(a) * wr, wy + Math.sin(a) * wr); }
+    for (const r of [0.4, 0.75, 1.1]) for (let i = 0; i <= 8; i++) { const a = i / 8 * Math.PI * 2; i ? ctx.lineTo(wx + Math.cos(a) * r, wy + Math.sin(a) * r) : ctx.moveTo(wx + r, wy); }
+    ctx.stroke();
+  }
+
+  function miniBat(x, y, s, color) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - s * 0.25);
+    ctx.quadraticCurveTo(x + s * 0.5, y - s * 0.6, x + s, y - s * 0.2);
+    ctx.quadraticCurveTo(x + s * 0.7, y - s * 0.1, x + s * 0.55, y + s * 0.15);
+    ctx.quadraticCurveTo(x + s * 0.3, y, x, y + s * 0.3);
+    ctx.quadraticCurveTo(x - s * 0.3, y, x - s * 0.55, y + s * 0.15);
+    ctx.quadraticCurveTo(x - s * 0.7, y - s * 0.1, x - s, y - s * 0.2);
+    ctx.quadraticCurveTo(x - s * 0.5, y - s * 0.6, x, y - s * 0.25);
+    ctx.fillStyle = color; ctx.fill();
+  }
+
+  // ---------- friends ----------
+  const bounce = f => f.happy > 0 && !reduce ? Math.abs(Math.sin(f.happy * 8)) * 0.15 : 0;
+  function eyes(x, y, gap, r) { for (const s of [-1, 1]) { circle(x + s * gap, y, r, INK, false); circle(x + s * gap - r * 0.3, y - r * 0.3, r * 0.35, '#ffffff', false); } }
+  function smile(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0.15 * Math.PI, 0.85 * Math.PI); ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke(); }
+
+  function drawFrog() {
+    const f = friends.frog, y = f.y - bounce(f);
+    ell(f.x, y - 0.24, 0.36, 0.25, '#5cc46a');
+    for (const s of [-1, 1]) { circle(f.x + s * 0.15, y - 0.48, 0.12, '#5cc46a'); circle(f.x + s * 0.15, y - 0.48, 0.065, '#ffffff', false); circle(f.x + s * 0.15, y - 0.47, 0.035, INK, false); }
+    smile(f.x, y - 0.3, 0.14);
+    ell(f.x, y - 0.06, 0.2, 0.06, '#8fe39a', false);
+  }
+  function drawCat() {
+    const f = friends.cat, y = f.y - bounce(f), body = '#4a4560';
+    line([f.x - 0.3, y - 0.1, f.x - 0.5, y - 0.35, f.x - 0.4, y - 0.62], INK, 0.13);
+    line([f.x - 0.3, y - 0.1, f.x - 0.5, y - 0.35, f.x - 0.4, y - 0.62], body, 0.07);
+    ell(f.x, y - 0.3, 0.3, 0.3, body);
+    poly([f.x - 0.2, y - 0.8, f.x - 0.24, y - 1.05, f.x - 0.06, y - 0.9], body);
+    poly([f.x + 0.2, y - 0.8, f.x + 0.24, y - 1.05, f.x + 0.06, y - 0.9], body);
+    circle(f.x, y - 0.75, 0.24, body);
+    for (const s of [-1, 1]) { ell(f.x + s * 0.09, y - 0.77, 0.055, 0.07, '#ffe27a', false); circle(f.x + s * 0.09, y - 0.77, 0.025, INK, false); }
+    poly([f.x - 0.03, y - 0.68, f.x + 0.03, y - 0.68, f.x, y - 0.65], '#ff9fb2', false);
+    if (f.happy > 0 || items.present.state === 'given') box(f.x - 0.2, y - 0.97, 0.4, 0.1, '#ffc21a', 0.03); // party hat brim
+    if (f.happy > 0 || items.present.state === 'given') poly([f.x - 0.15, y - 0.96, f.x + 0.15, y - 0.96, f.x + 0.02, y - 1.35], '#ff5c8a');
+  }
+  function drawGhost() {
+    const f = friends.ghost, bob = reduce ? 0 : Math.sin(time * 2) * 0.08, y = f.y - 0.25 + bob - bounce(f), x = f.x;
+    ctx.globalAlpha = 0.95;
+    ctx.beginPath();
+    ctx.moveTo(x - 0.36, y - 0.2);
+    ctx.arc(x, y - 0.75, 0.36, Math.PI, 0);
+    ctx.lineTo(x + 0.36, y - 0.2);
+    for (let i = 0; i < 4; i++) {
+      const x0 = x + 0.36 - i * 0.18;
+      ctx.quadraticCurveTo(x0 - 0.09, y - 0.05 + (reduce ? 0 : Math.sin(time * 5 + i) * 0.03), x0 - 0.18, y - 0.2);
+    }
+    ctx.closePath(); ctx.fillStyle = '#fff8e6'; ctx.fill(); outline();
+    ctx.globalAlpha = 1;
+    eyes(x, y - 0.75, 0.12, 0.055);
+    circle(x - 0.2, y - 0.6, 0.05, 'rgba(255,120,150,0.5)', false); circle(x + 0.2, y - 0.6, 0.05, 'rgba(255,120,150,0.5)', false);
+    ell(x, y - 0.55, 0.06, 0.08, INK, false);
+  }
+  function drawOwl() {
+    const f = friends.owl, y = f.y - bounce(f), x = f.x;
+    poly([x - 0.22, y - 0.6, x - 0.16, y - 0.78, x - 0.05, y - 0.62], '#7a5038');
+    poly([x + 0.22, y - 0.6, x + 0.16, y - 0.78, x + 0.05, y - 0.62], '#7a5038');
+    ell(x, y - 0.34, 0.26, 0.34, '#9a6a4a');
+    ell(x, y - 0.26, 0.16, 0.2, '#e3c49a', false);
+    if (f.awake) {
+      for (const s of [-1, 1]) { circle(x + s * 0.1, y - 0.48, 0.09, '#ffe27a'); circle(x + s * 0.1, y - 0.48, 0.045, INK, false); }
+    } else {
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(x + s * 0.1, y - 0.5, 0.07, 0.1 * Math.PI, 0.9 * Math.PI); ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.stroke(); }
+    }
+    poly([x - 0.04, y - 0.4, x + 0.04, y - 0.4, x, y - 0.32], '#ff8a1c', false);
+    line([x - 0.08, y, x - 0.08, y + 0.05, x + 0.08, y, x + 0.08, y + 0.05], '#ff8a1c', 0.04);
+  }
+  function drawSpider() {
+    const f = friends.spider, x = f.x, y = f.y + (reduce ? 0 : Math.sin(time * 1.5) * 0.15) - bounce(f);
+    f.touch.y = y;
+    line([x, -12, x, y - 0.2], 'rgba(230,226,255,0.7)', lw * 0.7);
+    for (const s of [-1, 1]) for (let i = 0; i < 4; i++) {
+      const a = -0.6 + i * 0.4;
+      line([x + s * 0.15, y, x + s * (0.3 + 0.05 * i), y - 0.15 + a * 0.3, x + s * (0.42 + 0.03 * i), y + 0.05 + a * 0.35], INK, 0.04);
+    }
+    circle(x, y, 0.23, '#6a4a8f');
+    for (const s of [-1, 1]) { circle(x + s * 0.08, y - 0.04, 0.07, '#ffffff'); circle(x + s * 0.08, y - 0.03, 0.035, INK, false); }
+    smile(x, y + 0.04, 0.07);
+  }
+
+  function drawFireflies() {
+    for (const f of flies) {
+      if (f.got) continue;
+      glow(f.x, f.y, 0.5, '255,240,120', 0.5 + 0.3 * Math.sin(time * 6 + f.ph));
+      circle(f.x, f.y, 0.07, '#fff3a0', false);
+      ctx.globalAlpha = 0.7; ell(f.x - 0.06, f.y - 0.08, 0.06, 0.03, '#ffffff', false); ell(f.x + 0.06, f.y - 0.08, 0.06, 0.03, '#ffffff', false); ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- things to carry (drawn with the bottom-center at x, y) ----------
+  function drawThing(kind, x, y, s = 1) {
+    switch (kind) {
+      case 'pumpkin':
+        ell(x, y - 0.25 * s, 0.33 * s, 0.25 * s, '#ff8a1c');
+        line([x - 0.12 * s, y - 0.45 * s, x - 0.12 * s, y - 0.05 * s], '#d46a1c', lw);
+        line([x + 0.12 * s, y - 0.45 * s, x + 0.12 * s, y - 0.05 * s], '#d46a1c', lw);
+        box(x - 0.04 * s, y - 0.6 * s, 0.08 * s, 0.14 * s, '#3fae55', 0.02 * s);
+        poly([x - 0.16 * s, y - 0.32 * s, x - 0.08 * s, y - 0.32 * s, x - 0.12 * s, y - 0.4 * s], INK, false);
+        poly([x + 0.16 * s, y - 0.32 * s, x + 0.08 * s, y - 0.32 * s, x + 0.12 * s, y - 0.4 * s], INK, false);
+        smile(x, y - 0.26 * s, 0.1 * s);
+        break;
+      case 'present':
+        box(x - 0.26 * s, y - 0.44 * s, 0.52 * s, 0.44 * s, '#e8352b', 0.04 * s);
+        ctx.fillStyle = '#ffc21a';
+        ctx.fillRect(x - 0.05 * s, y - 0.44 * s, 0.1 * s, 0.44 * s);
+        ctx.fillRect(x - 0.26 * s, y - 0.27 * s, 0.52 * s, 0.09 * s);
+        ell(x - 0.11 * s, y - 0.5 * s, 0.11 * s, 0.07 * s, '#ffc21a');
+        ell(x + 0.11 * s, y - 0.5 * s, 0.11 * s, 0.07 * s, '#ffc21a');
+        break;
+      case 'flower':
+        line([x, y - 0.25 * s, x, y - 0.6 * s], '#3fae55', 0.05 * s);
+        for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2 - Math.PI / 2; circle(x + Math.cos(a) * 0.13 * s, y - 0.68 * s + Math.sin(a) * 0.13 * s, 0.1 * s, '#ff9fb2'); }
+        circle(x, y - 0.68 * s, 0.08 * s, '#ffc21a');
+        poly([x - 0.17 * s, y - 0.28 * s, x + 0.17 * s, y - 0.28 * s, x + 0.12 * s, y, x - 0.12 * s, y], '#d9774a');
+        break;
+    }
+  }
+
+  function drawItems() {
+    // the two pumpkins that always grow in the patch
+    line([5.2, GROUND - 0.05, 6.0, GROUND - 0.15, 6.8, GROUND - 0.05, 7.6, GROUND - 0.15, 8.3, GROUND - 0.05], '#3fae55', 0.05);
+    drawThing('pumpkin', 5.6, GROUND, 0.75);
+    drawThing('pumpkin', 7.8, GROUND, 0.85);
+    for (const [kind, it] of Object.entries(items)) {
+      if (it.state === 'held') continue;
+      if (mission && mission.item === kind && it.state !== 'given') glow(it.x, it.y - 0.3, 0.75, '255,226,122', 0.35 + 0.25 * Math.sin(time * 5));
+      drawThing(kind, it.x, it.y);
+    }
+  }
+
+  // speech bubble over the friend who wants something, with a little badge showing which form can do it
+  function drawAsk() {
+    const m = mission;
+    if (!m || m.target === 'fireflies') return;
+    const f = friends[m.item ? m.to : m.target];
+    const bob = reduce ? 0 : Math.sin(time * 3) * 0.05;
+    const w = 0.95, h = 0.8, tipY = f.y - f.top - 0.05 + bob, top = tipY - 0.18 - h, x = f.x;
+    poly([x - 0.1, top + h - 0.01, x + 0.1, top + h - 0.01, x, tipY], '#ffffff');
+    box(x - w / 2, top, w, h, '#ffffff', h * 0.4);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 0.08, top + h - 0.05, 0.16, 0.08);
+    if (m.item) drawThing(m.item, x - 0.04, top + h - 0.08, 0.85);
+    else if (m.target === 'lantern') { poly([x, top + 0.12, x + 0.18, top + 0.45, x, top + 0.68, x - 0.18, top + 0.45], '#ff8a1c'); poly([x, top + 0.32, x + 0.08, top + 0.5, x, top + 0.62, x - 0.08, top + 0.5], '#ffe27a', false); }
+    else { ctx.fillStyle = '#ff5c8a'; heart(x - 0.04, top + h / 2, 0.24); }
+    const bx = x + w / 2 - 0.04, by = top + 0.06;
+    circle(bx, by, 0.22, m.item ? '#ffe0cc' : '#d9c8ff');
+    if (m.item) { circle(bx, by - 0.03, 0.12, HAIR, false); circle(bx, by + 0.02, 0.1, SKIN, false); }
+    else miniBat(bx, by + 0.02, 0.16, BAT);
+  }
+
+  // ---------- Vampyrven ----------
+  function drawHead(x, y, r, f) {
+    for (const s of [-1, 1]) circle(x + s * r * 1.15, y + r * 0.2, r * 0.42, HAIR); // pigtails
+    circle(x - f * r * 0.04, y - r * 0.05, r * 1.05, HAIR);
+    circle(x, y + r * 0.08, r * 0.9, SKIN);
+    // fringe with a little widow's peak
+    ctx.beginPath();
+    ctx.arc(x, y - r * 0.02, r * 0.98, Math.PI * 1.02, Math.PI * 1.98);
+    ctx.lineTo(x + r * 0.3, y - r * 0.38); ctx.lineTo(x, y - r * 0.18); ctx.lineTo(x - r * 0.3, y - r * 0.38);
+    ctx.closePath(); ctx.fillStyle = HAIR; ctx.fill();
+    for (const s of [-1, 1]) { // bows
+      const bx = x + s * r * 0.95, by = y - r * 0.55;
+      poly([bx, by, bx - r * 0.3, by - r * 0.2, bx - r * 0.3, by + r * 0.2], BOW);
+      poly([bx, by, bx + r * 0.3, by - r * 0.2, bx + r * 0.3, by + r * 0.2], BOW);
+      circle(bx, by, r * 0.09, BOW);
+    }
+    const ex = x + f * r * 0.12;
+    eyes(ex, y + r * 0.12, r * 0.36, r * 0.13);
+    circle(ex - r * 0.55, y + r * 0.45, r * 0.15, 'rgba(255,120,150,0.45)', false);
+    circle(ex + r * 0.55, y + r * 0.45, r * 0.15, 'rgba(255,120,150,0.45)', false);
+    ctx.beginPath(); ctx.arc(ex, y + r * 0.36, r * 0.28, 0.12 * Math.PI, 0.88 * Math.PI); ctx.closePath();
+    ctx.fillStyle = '#b2304a'; ctx.fill(); outline();
+    for (const s of [-1, 1]) poly([ex + s * r * 0.2, y + r * 0.42, ex + s * r * 0.08, y + r * 0.42, ex + s * r * 0.14, y + r * 0.58], '#ffffff', false); // tiny fangs
+  }
+
+  function arm(x1, y1, x2, y2) {
+    line([x1, y1, x2, y2], INK, 0.13);
+    line([x1, y1, x2, y2], DRESS, 0.08);
+    circle(x2, y2, 0.055, SKIN, false);
+  }
+
+  function drawGirl() {
+    const p = player, f = p.face, x = p.x;
+    const walking = Math.abs(p.vx) > 0.1 && p.ground;
+    const hop = p.jump > 0 && !reduce ? Math.abs(Math.sin(p.jump * 8)) * 0.15 : 0;
+    const y = p.y - hop - (walking && !reduce ? Math.abs(Math.sin(p.step)) * 0.04 : 0);
+    const sw = walking ? Math.sin(p.step) * 0.06 : 0;
+    ell(x, surfaceBelow(x, p.y), 0.32, 0.06, 'rgba(0,0,0,0.25)', false);
+    // cape behind her, flaring out backward when she walks
+    const fl = walking || !p.ground ? 0.14 + Math.sin(time * 9) * 0.03 : 0.03;
+    poly([x - 0.18, y - 0.98, x + 0.18, y - 0.98, x + 0.34 + (f < 0 ? fl : 0), y - 0.22, x - 0.34 - (f > 0 ? fl : 0), y - 0.22], CAPE);
+    poly([x - 0.12, y - 0.95, x + 0.12, y - 0.95, x + 0.27 + (f < 0 ? fl : 0), y - 0.27, x - 0.27 - (f > 0 ? fl : 0), y - 0.27], LINING, false);
+    for (const s of [-1, 1]) {
+      const lx = x + s * 0.08 + s * sw;
+      box(lx - 0.045, y - 0.38, 0.09, 0.33, CAPE);
+      box(lx - 0.07 + f * 0.02, y - 0.08, 0.14, 0.08, LINING, 0.03);
+    }
+    poly([x - 0.15, y - 0.96, x + 0.15, y - 0.96, x + 0.3, y - 0.34, x - 0.3, y - 0.34], DRESS);
+    ctx.fillStyle = BOW; ctx.fillRect(x - 0.17, y - 0.78, 0.34, 0.05);
+    const sh = y - 0.88;
+    if (p.carry) {
+      drawThing(p.carry, x + f * 0.42, y - 0.4, 0.85);
+      arm(x - 0.1, sh, x + f * 0.32, y - 0.62);
+      arm(x + 0.1, sh, x + f * 0.5, y - 0.6);
+    } else {
+      const wave = p.jump > 0 || (!walking && Math.sin(time * 1.2) > 0.75);
+      arm(x - f * 0.12, sh, x - f * 0.2 - sw, y - 0.55);
+      if (wave) arm(x + f * 0.12, sh, x + f * (0.26 + Math.sin(time * 10) * 0.05), y - 1.25);
+      else arm(x + f * 0.12, sh, x + f * 0.2 + sw, y - 0.55);
+    }
+    drawHead(x, y - 1.2, 0.3, f);
+  }
+
+  function drawBat() {
+    const p = player, x = p.x, cy = batCenter() - (reduce || !p.ground ? 0 : Math.abs(Math.sin(time * 2)) * 0.03), f = p.face;
+    const ground = surfaceBelow(x, p.y);
+    const sh = clamp(1 - (ground - p.y) / 6, 0.3, 1);
+    ell(x, ground, 0.3 * sh, 0.05 * sh, 'rgba(0,0,0,0.22)', false);
+    const a = p.ground ? 0.25 : Math.sin(p.wing) * 0.7;
+    for (const s of [-1, 1]) {
+      poly([
+        x + s * 0.15, cy - 0.06,
+        x + s * 0.5, cy - 0.32 - a * 0.25,
+        x + s * 0.8, cy - 0.2 - a * 0.45,
+        x + s * 0.68, cy + 0.02 - a * 0.25,
+        x + s * 0.55, cy - 0.04 - a * 0.15,
+        x + s * 0.44, cy + 0.08 - a * 0.1,
+        x + s * 0.32, cy + 0.01,
+        x + s * 0.2, cy + 0.12,
+      ], WING);
+    }
+    for (const s of [-1, 1]) poly([x + s * 0.08, cy - 0.2, x + s * 0.24, cy - 0.38, x + s * 0.24, cy - 0.12], BAT);
+    circle(x, cy, 0.26, BAT);
+    for (const s of [-1, 1]) {
+      const bx = x + s * 0.2, by = cy - 0.3;
+      poly([bx, by, bx - 0.09, by - 0.06, bx - 0.09, by + 0.06], BOW);
+      poly([bx, by, bx + 0.09, by - 0.06, bx + 0.09, by + 0.06], BOW);
+    }
+    const ex = x + f * 0.03;
+    for (const s of [-1, 1]) { circle(ex + s * 0.1, cy - 0.04, 0.085, '#ffffff'); circle(ex + s * 0.1 + f * 0.02, cy - 0.03, 0.045, INK, false); }
+    circle(ex - 0.17, cy + 0.08, 0.04, 'rgba(255,120,150,0.5)', false);
+    circle(ex + 0.17, cy + 0.08, 0.04, 'rgba(255,120,150,0.5)', false);
+    smile(ex, cy + 0.06, 0.07);
+    for (const s of [-1, 1]) poly([ex + s * 0.05, cy + 0.12, ex + s * 0.01, cy + 0.12, ex + s * 0.03, cy + 0.17], '#ffffff', false);
+    line([x - 0.06, cy + 0.25, x - 0.06, cy + 0.33], INK, 0.03);
+    line([x + 0.06, cy + 0.25, x + 0.06, cy + 0.33], INK, 0.03);
+  }
+
+  function drawParticles() {
+    for (const q of parts) {
+      const a = Math.max(0, q.life / q.max);
+      switch (q.kind) {
+        case 'puff': ctx.globalAlpha = 0.8 * a; circle(q.x, q.y, q.r * (1.6 - a * 0.6), '#d9c8ff', false); ctx.globalAlpha = 1; break;
+        case 'spark': ctx.globalAlpha = a; circle(q.x, q.y, 0.05, '#ffc21a', false); ctx.globalAlpha = 1; break;
+        case 'heart': ctx.globalAlpha = a; ctx.fillStyle = '#ff5c8a'; heart(q.x, q.y, 0.1); ctx.globalAlpha = 1; break;
+        case 'confetti':
+          ctx.save(); ctx.globalAlpha = Math.min(1, a * 2); ctx.translate(q.x, q.y); ctx.rotate(q.rot);
+          ctx.fillStyle = q.color; ctx.fillRect(-0.07, -0.035, 0.14, 0.07); ctx.restore();
+          break;
+      }
+    }
+  }
+
+  // ---------- overlays (screen pixels) ----------
+  function drawTexts() {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const size = clamp(scale * 0.36, 16, 30);
+    for (const t of texts) {
+      const age = 1 - t.life / t.max;
+      const sc = age < 0.15 ? age / 0.15 : 1;
+      ctx.globalAlpha = Math.min(1, t.life / 0.4);
+      ctx.font = `800 ${size * sc}px ${FONT}`;
+      const x = clamp(SX(t.x), ctx.measureText(t.text).width / 2 + 6, W - ctx.measureText(t.text).width / 2 - 6);
+      ctx.lineWidth = size * 0.3; ctx.strokeStyle = INK; ctx.lineJoin = 'round';
+      ctx.strokeText(t.text, x, SY(t.y));
+      ctx.fillStyle = t.color; ctx.fillText(t.text, x, SY(t.y));
+    }
+    ctx.globalAlpha = 1;
+    // the owl snores
+    const owl = friends.owl;
+    if (!owl.awake) {
+      ctx.font = `800 ${clamp(scale * 0.26, 12, 22)}px ${FONT}`;
+      for (let i = 0; i < 3; i++) {
+        const ph = (time * 0.45 + i / 3) % 1;
+        ctx.globalAlpha = Math.sin(ph * Math.PI);
+        ctx.fillStyle = '#fff8e6';
+        ctx.fillText('z', SX(owl.x + 0.25 + ph * 0.5), SY(owl.y - 0.8 - ph * 0.8));
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function arrowAt(tx, ty, rot, a) {
+    ctx.save(); ctx.translate(tx, ty); ctx.rotate(rot);
+    poly([-0.25 * a, -a, 0.25 * a, -a, 0.25 * a, -0.5 * a, 0.5 * a, -0.5 * a, 0, 0, -0.5 * a, -0.5 * a, -0.25 * a, -0.5 * a], '#ffc21a');
+    ctx.restore();
+  }
+  function drawPointer() {
+    const g = goal();
+    if (!g) return;
+    const a = clamp(scale * 0.55, 26, 48), sx = SX(g.x), sy = SY(g.y);
+    const bob = reduce ? 0 : Math.abs(Math.sin(time * 5)) * a * 0.3;
+    if (sx < a * 0.4 || sx > W - a * 0.4) { // off screen: an arrow at the edge shows the way
+      const side = sx < W / 2 ? -1 : 1;
+      arrowAt(side < 0 ? 10 + a * 0.05 - bob * 0.5 : W - 10 + bob * 0.5, clamp(sy, a + 10, H - a * 2.5), side < 0 ? Math.PI / 2 : -Math.PI / 2, a);
+    } else if (idleT > 2.5) arrowAt(sx, sy - bob, 0, a);
+  }
+
+  // speech bubble over Vampyrven; flips below her near the top edge
+  function drawSpeech() {
+    if (!speech) return;
+    const p = player;
+    const ax = SX(p.x), top = SY(p.y - (p.form === 'girl' ? 1.62 : 0.85));
+    const fs = clamp(scale * 0.28, 15, 24);
+    ctx.font = `800 ${fs}px ${FONT}`;
+    const w = Math.min(ctx.measureText(speech.text).width + fs * 1.2, W - 8), h = fs * 1.7, tail = fs * 0.7;
+    const above = top - tail - h >= 4;
+    const ay = above ? top : SY(p.y) + 6;
+    const by = above ? ay - tail - h : ay + tail;
+    const bx = Math.min(Math.max(ax - w / 2, 4), W - w - 4);
+    const edge = above ? by + h : by;
+    const tx = Math.min(Math.max(ax - tail * 0.45, bx + h * 0.4), bx + w - h * 0.4 - tail * 0.9);
+    const age = 1 - speech.life / speech.max;
+    const sc = reduce ? 1 : Math.min(1, 0.4 + age / 0.06 * 0.6);
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, speech.life / 0.3);
+    ctx.translate(ax, ay); ctx.scale(sc, sc); ctx.translate(-ax, -ay);
+    poly([tx, edge, tx + tail * 0.9, edge, ax, ay], '#ffffff');
+    box(bx, by, w, h, '#ffffff', h * 0.45);
+    const l = ctx.lineWidth, dir = above ? -1 : 1;
+    ctx.beginPath(); ctx.moveTo(tx + l, edge + dir * l); ctx.lineTo(tx + tail * 0.9 - l, edge + dir * l); ctx.lineTo(ax, ay + dir * l * 2.5);
+    ctx.closePath(); ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(speech.text, bx + w / 2, by + h / 2 + fs * 0.06, w - fs * 0.8);
+    ctx.restore();
+  }
+
+  function draw() {
+    drawSky();
+    worldMode();
+    drawGround();
+    drawHouse();
+    drawLantern();
+    drawTree();
+    drawFarGarden();
+    drawFrog(); drawCat(); drawGhost(); drawOwl(); drawSpider();
+    drawItems();
+    drawHedge();
+    drawFireflies();
+    drawAsk();
+    if (player.form === 'girl') drawGirl(); else drawBat();
+    drawParticles();
+    screenMode();
+    drawTexts();
+    drawPointer();
+    drawSpeech();
+  }
+
+  // ---------- sound ----------
+  let ac = null, master = null, muted = false;
+  function ensureAudio() {
+    if (!ac) {
+      const C = window.AudioContext || window.webkitAudioContext;
+      if (!C) return null;
+      try { ac = new C(); } catch (e) { return null; }
+      master = ac.createGain();
+      master.gain.value = muted ? 0 : 0.8;
+      master.connect(ac.destination);
+    }
+    if (ac.state === 'suspended') ac.resume();
+    return ac;
+  }
+  function beep(freq, dur, { type = 'sine', vol = 0.2, delay = 0, to = null } = {}) {
+    if (!ac) return;
+    const t0 = ac.currentTime + delay;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(master);
+    o.start(t0); o.stop(t0 + dur + 0.05);
+  }
+  // Her voice: only with a Danish system voice, since other voices mangle Danish words
+  const synth = window.speechSynthesis;
+  let daVoice = null;
+  function pickVoice() {
+    const voices = synth.getVoices();
+    daVoice = voices.find(v => /^da/i.test(v.lang) && v.localService) || voices.find(v => /^da/i.test(v.lang)) || null;
+  }
+  if (synth) { pickVoice(); synth.onvoiceschanged = pickVoice; }
+  function speak(text) {
+    if (!synth || !daVoice || muted) return;
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice = daVoice; u.lang = daVoice.lang;
+    u.pitch = 1.7; u.rate = 1.05;
+    synth.speak(u);
+  }
+
+  // ---------- input ----------
+  function toWorld(e) {
+    const r = cv.getBoundingClientRect();
+    return { x: camX + (e.clientX - r.left) / scale, y: (e.clientY - r.top - oy) / scale };
+  }
+  cv.addEventListener('pointerdown', e => {
+    ensureAudio();
+    idleT = 0;
+    const w = toWorld(e), p = player;
+    if (p.form === 'girl') p.walkTo = clamp(w.x, 0.4, WORLD_W - 0.4);
+    else {
+      held = true; ptr = w;
+      p.tvx = clamp((w.x - p.x) * 1.6, -3.4, 3.4);
+      if (w.y < batCenter() + 0.15 || p.ground) flap(w.y < batCenter() + 0.15 ? 1 : 0.5);
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+    }
+  });
+  cv.addEventListener('pointermove', e => { if (held) ptr = toWorld(e); });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) cv.addEventListener(ev, () => { held = false; });
+  switchBtn.addEventListener('click', toggleForm);
+  soundBtn.addEventListener('click', () => {
+    ensureAudio();
+    muted = !muted;
+    if (master) master.gain.setTargetAtTime(muted ? 0 : 0.8, ac.currentTime, 0.02);
+    if (muted && synth) synth.cancel();
+    document.getElementById('iconOn').hidden = muted;
+    document.getElementById('iconOff').hidden = !muted;
+    soundBtn.setAttribute('aria-label', muted ? 'Slå lyden til' : 'Slå lyden fra');
+  });
+  const KEYS = { arrowleft: -1, a: -1, arrowright: 1, d: 1 };
+  window.addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    idleT = 0;
+    if (k in KEYS) { e.preventDefault(); ensureAudio(); keyDir = KEYS[k]; }
+    else if (k === ' ' || k === 'arrowup' || k === 'w') {
+      if (e.target.tagName === 'BUTTON' && k === ' ') return;
+      e.preventDefault(); ensureAudio();
+      if (player.form === 'bat' && !e.repeat) flap();
+    } else if (k === 'b' && !e.repeat) toggleForm();
+  });
+  window.addEventListener('keyup', e => { if (KEYS[e.key.toLowerCase()] === keyDir) keyDir = 0; });
+
+  // ---------- loop ----------
+  function resize() {
+    const r = wrap.getBoundingClientRect();
+    W = r.width; H = r.height;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    // 10 units fill the height; on narrow screens keep at least 5.5 units in view and show more sky on top
+    scale = Math.min(H / 10, W / 5.5);
+    oy = H - 10 * scale;
+    viewW = W / scale;
+    camX = camTarget();
+  }
+  let last = 0;
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000 || 0);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+  function start(data) {
+    stars = +(data && data.stars) || 0;
+    starCount.textContent = stars;
+    if (stars > 0) { firstDone = true; hintEl.hidden = true; }
+    setForm('girl');
+    resize();
+    texts.push({ text: 'Hej David!', x: player.x, y: player.y - 2, life: 3, max: 3, color: '#ffc21a' });
+    new ResizeObserver(resize).observe(wrap);
+    if (window.visualViewport) visualViewport.addEventListener('resize', resize); // phone toolbars and rotation
+    requestAnimationFrame(loop);
+  }
+  const hot = window.claude && window.claude.hot;
+  if (hot && typeof hot.snapshot === 'function') hot.snapshot(() => ({ stars }));
+  if (hot && typeof hot.ready === 'function') hot.ready(start); else start((hot && hot.data) || {});
+})();
+</script>
+
+<script>
+// The house button leads back to the game menu, but only on the games site (not inside a claude.ai preview).
+if (/\/(firetruck|lorry|vampyrven)\/(index\.html)?$/.test(location.pathname)) document.getElementById('homeBtn').hidden = false;
+</script>

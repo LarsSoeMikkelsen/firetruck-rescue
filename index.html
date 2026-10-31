@@ -37,7 +37,7 @@ h1 {
 }
 .games {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: clamp(16px, 3vw, 32px); width: 100%; max-width: 760px;
+  gap: clamp(16px, 3vw, 32px); width: 100%; max-width: 1120px;
 }
 .game {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -53,6 +53,7 @@ h1 {
 .game:focus-visible { outline: 5px solid var(--gold); outline-offset: 4px; }
 .fire { background: var(--red); }
 .lorry { background: var(--purple); }
+.night { background: #2c2758; }
 .icon {
   font-size: clamp(5rem, 16vw, 7.5rem); line-height: 1.1;
   filter: drop-shadow(0 4px 0 rgba(43, 35, 64, 0.35));
@@ -75,6 +76,11 @@ h1 {
       <span class="icon" aria-hidden="true">🚚</span>
       <span class="name">Lastbilen</span>
       <span class="what">Kør kasser ud til butikkerne!</span>
+    </a>
+    <a class="game night" href="vampyrven/">
+      <span class="icon" aria-hidden="true">🦇</span>
+      <span class="name">Vampyrven</span>
+      <span class="what">Flyv og hjælp dine venner!</span>
     </a>
   </main>
 </body>
