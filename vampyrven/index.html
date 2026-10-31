@@ -200,7 +200,7 @@ button:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
 
   const INK = '#2b2340';
   const FONT = '"Baloo 2", "Trebuchet MS", sans-serif';
-  const SKIN = '#f6d2b8', HAIR = '#4a2350', DRESS = '#8a4fd1', CAPE = '#3a2450', LINING = '#d23a4e', BOW = '#ff5c8a';
+  const SKIN = '#9fc4ef', HAIR = '#4a2350', DRESS = '#8a4fd1', CAPE = '#3a2450', LINING = '#d23a4e', BOW = '#ff5c8a';
   const BAT = '#7a4fc9', WING = '#4a2a7a';
 
   // The world is measured in units: 10 tall, WORLD_W wide; y grows downward and the ground top is at GROUND.
@@ -890,7 +890,7 @@ button:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
     else if (m.target === 'lantern') { poly([x, top + 0.12, x + 0.18, top + 0.45, x, top + 0.68, x - 0.18, top + 0.45], '#ff8a1c'); poly([x, top + 0.32, x + 0.08, top + 0.5, x, top + 0.62, x - 0.08, top + 0.5], '#ffe27a', false); }
     else { ctx.fillStyle = '#ff5c8a'; heart(x - 0.04, top + h / 2, 0.24); }
     const bx = x + w / 2 - 0.04, by = top + 0.06;
-    circle(bx, by, 0.22, m.item ? '#ffe0cc' : '#d9c8ff');
+    circle(bx, by, 0.22, m.item ? '#fff8e6' : '#d9c8ff');
     if (m.item) { circle(bx, by - 0.03, 0.12, HAIR, false); circle(bx, by + 0.02, 0.1, SKIN, false); }
     else miniBat(bx, by + 0.02, 0.16, BAT);
   }
