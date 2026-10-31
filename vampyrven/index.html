@@ -201,7 +201,7 @@ button:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
   const INK = '#2b2340';
   const FONT = '"Baloo 2", "Trebuchet MS", sans-serif';
   const SKIN = '#9fc4ef', HAIR = '#4a2350', DRESS = '#8a4fd1', CAPE = '#3a2450', LINING = '#d23a4e', BOW = '#ff5c8a';
-  const BAT = '#7a4fc9', WING = '#4a2a7a';
+  const BAT = '#2e2a36', WING = '#1c1922', VEIN = '#5e5870';
 
   // The world is measured in units: 10 tall, WORLD_W wide; y grows downward and the ground top is at GROUND.
   const WORLD_W = 34, GROUND = 8.6;
@@ -964,6 +964,7 @@ button:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
     const sh = clamp(1 - (ground - p.y) / 6, 0.3, 1);
     ell(x, ground, 0.3 * sh, 0.05 * sh, 'rgba(0,0,0,0.22)', false);
     const a = p.ground ? 0.25 : Math.sin(p.wing) * 0.7;
+    glow(x, cy - 0.05, 1.1, '217,200,255', 0.4); // moonlight halo so a black bat shows up against the night sky
     for (const s of [-1, 1]) {
       poly([
         x + s * 0.15, cy - 0.06,
@@ -975,8 +976,12 @@ button:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
         x + s * 0.32, cy + 0.01,
         x + s * 0.2, cy + 0.12,
       ], WING);
+      for (const [tx, ty] of [[0.8, -0.2 - a * 0.45], [0.55, -0.04 - a * 0.15], [0.32, 0.01]]) line([x + s * 0.17, cy - 0.06, x + s * tx, cy + ty], VEIN, lw * 0.8);
     }
-    for (const s of [-1, 1]) poly([x + s * 0.08, cy - 0.2, x + s * 0.24, cy - 0.38, x + s * 0.24, cy - 0.12], BAT);
+    for (const s of [-1, 1]) {
+      poly([x + s * 0.08, cy - 0.2, x + s * 0.24, cy - 0.38, x + s * 0.24, cy - 0.12], BAT);
+      poly([x + s * 0.13, cy - 0.2, x + s * 0.21, cy - 0.31, x + s * 0.21, cy - 0.17], '#ff9fb2', false);
+    }
     circle(x, cy, 0.26, BAT);
     for (const s of [-1, 1]) {
       const bx = x + s * 0.2, by = cy - 0.3;
